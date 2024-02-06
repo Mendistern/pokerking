@@ -1,0 +1,9 @@
+/poker/.gitlab*
+/pokerPpt
+/pokerking
+*.pdf
+**/*.pdf
+*.zip
+**/*.zip
+*.pptx
+**/*.pptx

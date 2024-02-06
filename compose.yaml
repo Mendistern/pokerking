@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  postgres_pokerking_db:
+    image: postgres:15.4-alpine
+    environment:
+      POSTGRES_DB: 'pokerking_db'
+      POSTGRES_USER: 'user'
+      POSTGRES_PASSWORD: 'PokerKing2023*'
+    ports:
+      - '5432:5432'
+    networks:
+      - backend
+    volumes:
+      - ./pokerking/postgres/data:/var/lib/postgresql/data
+
+  pokerking_rabbitmq:
+    image: rabbitmq:3.12.4-management-alpine
+    environment:
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=PokerKing2023*
+    ports:
+      - "5672:5672" #AMQP
+      - "15672:15672" #MGMT
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "http://localhost:15672" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - backend
+    volumes:
+      - ./pokerking/rabbitmq/data/:/var/lib/rabbitmq/
+      - ./pokerking/rabbitmq/log/:/var/log/rabbitmq/
+
+  pokerking_idp_postgres:
+    image: postgres:15.4-alpine
+    volumes:
+      - ./pokerking/idp/postgres/data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: password
+    networks:
+      - kc
+
+  pokerking_idp_keycloak:
+    image: quay.io/keycloak/keycloak:22.0.1
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=PokerKing2023*
+      - KC_DB=postgres
+      - KC_DB_URL_HOST=pokerking_idp_postgres
+      - KC_DB_URL_DATABASE=keycloak
+      - KC_DB_USERNAME=keycloak
+      - KC_DB_PASSWORD=password
+    command: start-dev
+    ports:
+      - "8180:8080"
+    depends_on:
+      - pokerking_idp_postgres
+    networks:
+      - kc
+
+networks:
+  kc:
+    name: kc-network
+    driver: bridge
+  backend:
+    name: back-network
+    driver: bridge
+
